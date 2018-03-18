@@ -1,11 +1,12 @@
 package com.samz.cordova.mixpanel;
 
+import android.os.Build;
 import android.content.Context;
 import android.text.TextUtils;
+import android.util.Base64;
 import com.mixpanel.android.mpmetrics.MixpanelAPI;
 
-import java.util.Map;
-import java.util.HashMap;
+import java.util.*;
 
 import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.CallbackContext;
@@ -13,11 +14,22 @@ import org.apache.cordova.LOG;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+
+import com.android.volley.toolbox.Volley;
+import com.android.volley.toolbox.JsonObjectRequest;
 
 public class MixpanelPlugin extends CordovaPlugin {
 
     private static String LOG_TAG = "MIXPANEL PLUGIN";
     private static MixpanelAPI mixpanel;
+    private RequestQueue requestQueue;
+    private String token;
+    private String distinctId;
+    private JSONObject commonProps = new JSONObject();
 
     private enum Action {
 
@@ -195,9 +207,10 @@ public class MixpanelPlugin extends CordovaPlugin {
 
 
     private boolean handleInit(JSONArray args, final CallbackContext cbCtx) {
-        String token = args.optString(0, "");
+        token = args.optString(0, "");
         Context ctx = cordova.getActivity();
         mixpanel = MixpanelAPI.getInstance(ctx, token);
+        initCommonProps();
         cbCtx.success();
         return true;
     }
@@ -240,6 +253,28 @@ public class MixpanelPlugin extends CordovaPlugin {
     }
 
 
+    private void initCommonProps() {
+        Map<String, String> deviceInfo = mixpanel.getDeviceInfo();
+        final Set<Map.Entry<String, String>> entries = deviceInfo.entrySet();
+        for (final Map.Entry<String, String> entry : entries) {
+            commonProps.put(entry.getKey(), entry.getValue());
+        }
+
+        commonProps.put("token", token);
+        commonProps.put("distinct_id", mixpanel.getDistinctId());
+        commonProps.put("time", new Date().getTime());
+        commonProps.put("mp_lib", "android");
+        commonProps.put("$lib_version", "compass_modified");
+
+        // For querying together with data from other libraries
+        commonProps.put("$os", "Android");
+        commonProps.put("$os_version", Build.VERSION.RELEASE == null ? "UNKNOWN" : Build.VERSION.RELEASE);
+
+        commonProps.put("$manufacturer", Build.MANUFACTURER == null ? "UNKNOWN" : Build.MANUFACTURER);
+        commonProps.put("$brand", Build.BRAND == null ? "UNKNOWN" : Build.BRAND);
+        commonProps.put("$model", Build.MODEL == null ? "UNKNOWN" : Build.MODEL);
+    }
+
     private boolean handleTrack(JSONArray args, final CallbackContext cbCtx) {
         String event = args.optString(0, "");
         JSONObject properties = args.optJSONObject(1);
@@ -247,6 +282,45 @@ public class MixpanelPlugin extends CordovaPlugin {
             properties = new JSONObject();
         }
         mixpanel.track(event, properties);
+
+        JSONObject data = new JSONObject();
+        String base64Data = "";
+
+        try {
+            Iterator<String> i = commonProps.keys();
+            while (i.hasNext()) {
+                String key = i.next();
+                properties.put(key, commonProps.get(key));
+            }
+
+            data.put("event", event);
+            data.put("properties", properties);
+            base64Data = Base64.encodeToString(data.toString().getBytes(), 0);
+        } catch (final JSONException e) {
+
+        }
+
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest
+                ("https://metrics.compassnews.co.uk/track/?ip=0&data=" + base64Data, null, new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        System.out.println("Response from compass api: " + response.toString());
+                        LOG.d(LOG_TAG, response.toString());
+                    }
+                }, new Response.ErrorListener() {
+
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        error.printStackTrace();
+                    }
+                });
+
+        if (requestQueue == null) {
+            requestQueue = Volley.newRequestQueue(this.cordova.getActivity().getApplicationContext());
+        }
+        requestQueue.add(jsonObjectRequest);
+        LOG.d(LOG_TAG, "Request sent to compass metrics api: " + data.toString());
+
         cbCtx.success();
         return true;
     }
