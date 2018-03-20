@@ -1,11 +1,11 @@
 {
-  "name": "cordova-plugin-mixpanel",
-  "version": "4.2.0",
-  "description": "Mixpanel Cordova Plugin for iOS, Android and Browser Platforms",
-  "author": "Sam Zilverberg <samzilverberg@gmail.com>",
-  "license": "MIT",
+  "name": "compass-plugin-metrics",
+  "version": "1.0.0",
+  "description": "Compass Mixpanel Cordova Plugin for iOS and Android Platforms",
+  "author": "Rohan Tahiliani <rohan@compassnews.co.uk>",
+  "license": "Only for internal use",
   "cordova": {
-    "id": "cordova-plugin-mixpanel",
+    "id": "compass-plugin-metrics",
     "platforms": [
       "android",
       "ios",
@@ -14,9 +14,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/samzilverberg/cordova-mixpanel-plugin.git"
+    "url": "git+https://github.com/compass-news/App-Metrics.git"
   },
-  "homepage": "https://github.com/samzilverberg/cordova-mixpanel-plugin#readme",
+  "homepage": "https://github.com/compass-news/App-Metrics#readme",
   "keywords": [
     "mixpanel",
     "cordova",
@@ -26,7 +26,6 @@
     "ios",
     "android",
     "browser",
-    "ecosystem:cordova",
     "cordova-android",
     "cordova-ios"
   ],
@@ -38,7 +37,7 @@
       "<5.0.0": {
         "cordova": ">=6.4.0",
         "cordova-ios": ">=4.3.0",
-        "cordova-android": ">=6.1.0"
+        "cordova-android": ">=6.3.0"
       }
     }
   }
