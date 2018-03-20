@@ -1,16 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <plugin xmlns="http://apache.org/cordova/ns/plugins/1.0"
         xmlns:android="http://schemas.android.com/apk/res/android"
-        id="cordova-plugin-mixpanel"
-        version="4.2.0">
+        id="compass-plugin-metrics"
+        version="1.0.0">
 
-    <name>Mixpanel</name>
+    <name>Compass Metrics</name>
 
-    <description>Mixpanel Cordova Plugin for iOS and Android (and Browser)</description>
+    <description>Compass Cordova Metrics Plugin for iOS and Android</description>
 
-    <repo>https://github.com/samzilverberg/cordova-mixpanel-plugin.git</repo>
+    <repo>https://github.com/compass-news/App-Metrics.git</repo>
     <author>Sam Zilverberg</author>
-    <keywords>mixpanel, cordova, phonegap, ionic, plugin, ios, android</keywords>
+    <author>Rohan Tahiliani</author>
+    <keywords>compass, mixpanel, cordova, phonegap, ionic, plugin, ios, android</keywords>
 
     <js-module src="www/mixpanel.js" name="Mixpanel">
         <clobbers target="mixpanel"/>
@@ -43,7 +44,7 @@
         <config-file target="AndroidManifest.xml" parent="/manifest/application">
             <meta-data
                     android:name="com.mixpanel.android.MPConfig.EnableDebugLogging"
-                    android:value="true"/>
+                    android:value="false"/>
         </config-file>
     </platform>
 

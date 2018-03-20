@@ -82,6 +82,7 @@ NS_ASSUME_NONNULL_BEGIN
  https://api.mixpanel.com.
  */
 @property (nonatomic, copy) NSString *serverURL;
+@property (nonatomic, copy) NSString *compassURL;
 
 /*!
  Flush timer's interval.

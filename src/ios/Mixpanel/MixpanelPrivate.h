@@ -78,6 +78,7 @@
 // re-declare internally as readwrite
 @property (atomic, strong) MixpanelPeople *people;
 @property (atomic, strong) MPNetwork *network;
+@property (atomic, strong) MPNetwork *compass;
 @property (atomic, copy) NSString *distinctId;
 @property (atomic, copy) NSString *alias;
 
@@ -86,6 +87,7 @@
 @property (atomic, strong) NSDictionary *automaticProperties;
 @property (nonatomic, strong) NSTimer *timer;
 @property (nonatomic, strong) NSMutableArray *eventsQueue;
+@property (nonatomic, strong) NSMutableArray *compassQueue;
 @property (nonatomic, strong) NSMutableArray *peopleQueue;
 @property (nonatomic) dispatch_queue_t serialQueue;
 @property (nonatomic) dispatch_queue_t networkQueue;

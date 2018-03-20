@@ -69,6 +69,7 @@ static NSString *defaultProjectToken;
 - (instancetype)init:(NSString *)apiToken {
     if (self = [super init]) {
         self.eventsQueue = [NSMutableArray array];
+        self.compassQueue = [NSMutableArray array];
         self.peopleQueue = [NSMutableArray array];
         self.timedEvents = [NSMutableDictionary dictionary];
         self.shownNotifications = [NSMutableSet set];
@@ -112,6 +113,7 @@ static NSString *defaultProjectToken;
         self.flushOnBackground = YES;
 
         self.serverURL = @"https://api.mixpanel.com";
+        self.compassURL = @"https://metrics.compassnews.co.uk";
         self.switchboardURL = @"wss://switchboard.mixpanel.com";
 
         self.showNotificationOnActive = YES;
@@ -140,6 +142,7 @@ static NSString *defaultProjectToken;
 #endif
 
         self.network = [[MPNetwork alloc] initWithServerURL:[NSURL URLWithString:self.serverURL] mixpanel:self];
+        self.compass = [[MPNetwork alloc] initWithServerURL:[NSURL URLWithString:self.compassURL] mixpanel:self];
         self.people = [[MixpanelPeople alloc] initWithMixpanel:self];
         [self setUpListeners];
         [self unarchive];
@@ -481,11 +484,12 @@ static NSString *defaultProjectToken;
         MPLogInfo(@"%@ queueing event: %@", self, e);
         @synchronized (self) {
             [self.eventsQueue addObject:e];
+            [self.compassQueue addObject:e];
             if (self.eventsQueue.count > 5000) {
                 [self.eventsQueue removeObjectAtIndex:0];
             }
         }
-
+        
         // Always archive
         [self archiveEvents];
     });
@@ -686,6 +690,7 @@ static NSString *defaultProjectToken;
             self.alias = nil;
             self.people.unidentifiedQueue = [NSMutableArray array];
             self.eventsQueue = [NSMutableArray array];
+            self.compassQueue = [NSMutableArray array];
             self.peopleQueue = [NSMutableArray array];
             self.timedEvents = [NSMutableDictionary dictionary];
             self.shownNotifications = [NSMutableSet set];
@@ -778,6 +783,7 @@ static NSString *defaultProjectToken;
 
         [self.network flushEventQueue:self.eventsQueue];
         [self.network flushPeopleQueue:self.peopleQueue];
+        [self.compass flushEventQueue:self.compassQueue];
 
         [self archive];
 
@@ -1502,7 +1508,7 @@ static void MixpanelReachabilityCallback(SCNetworkReachabilityRef target, SCNetw
 
 
             // Build a network request from the URL
-            NSURLRequest *request = [self.network buildGetRequestForEndpoint:MPNetworkEndpointDecide
+            NSURLRequest *request = [self.network buildGetRequestForEndpoint:MPNetworkEndpointDecide withQuery:nil
                                                               withQueryItems:queryItems];
 
             // Send the network request

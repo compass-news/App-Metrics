@@ -91,14 +91,31 @@ static const NSUInteger kBatchSize = 50;
         queueCopyForFlushing = [queue mutableCopy];
     }
     
+    NSUInteger bs;
+    if ([self.serverURL.host rangeOfString:@"compassnews"].location != NSNotFound) {
+        bs = 1;
+    } else {
+        bs = kBatchSize;
+    }
+    
     while (queueCopyForFlushing.count > 0) {
-        NSUInteger batchSize = MIN(queueCopyForFlushing.count, kBatchSize);
+        NSUInteger batchSize = MIN(queueCopyForFlushing.count, bs);
         NSArray *batch = [queueCopyForFlushing subarrayWithRange:NSMakeRange(0, batchSize)];
         
         NSString *requestData = [MPNetwork encodeArrayForAPI:batch];
         NSString *postBody = [NSString stringWithFormat:@"ip=%d&data=%@", self.useIPAddressForGeoLocation, requestData];
+        
+        NSString *getData = [MPNetwork encodeArrayForCompass:batch];
+        NSString *getBody = [NSString stringWithFormat:@"ip=%d&data=%@", self.useIPAddressForGeoLocation, getData];
+        
         MPLogDebug(@"%@ flushing %lu of %lu to %lu: %@", self, (unsigned long)batch.count, (unsigned long)queue.count, endpoint, queueCopyForFlushing);
-        NSURLRequest *request = [self buildPostRequestForEndpoint:endpoint andBody:postBody];
+        
+        NSURLRequest *request;
+        if ([self.serverURL.host rangeOfString:@"compassnews"].location != NSNotFound) {
+            request = [self buildGetRequestForEndpoint:endpoint withQuery:getBody withQueryItems:nil];
+        } else {
+            request = [self buildPostRequestForEndpoint:endpoint andBody:postBody];
+        }
         
         [self updateNetworkActivityIndicator:YES];
         
@@ -206,10 +223,11 @@ static const NSUInteger kBatchSize = 50;
     return endPointToPath[key];
 }
 
-- (NSURLRequest *)buildGetRequestForEndpoint:(MPNetworkEndpoint)endpoint
+- (NSURLRequest *)buildGetRequestForEndpoint:(MPNetworkEndpoint)endpoint withQuery:(NSString *)query
                               withQueryItems:(NSArray <NSURLQueryItem *> *)queryItems {
     return [self buildRequestForEndpoint:[MPNetwork pathForEndpoint:endpoint]
                             byHTTPMethod:@"GET"
+                               withQuery:query
                           withQueryItems:queryItems
                                  andBody:nil];
 }
@@ -218,13 +236,15 @@ static const NSUInteger kBatchSize = 50;
                                       andBody:(NSString *)body {
     return [self buildRequestForEndpoint:[MPNetwork pathForEndpoint:endpoint]
                             byHTTPMethod:@"POST"
+                               withQuery:nil
                           withQueryItems:nil
                                  andBody:body];
 }
 
 - (NSURLRequest *)buildRequestForEndpoint:(NSString *)endpoint
-                             byHTTPMethod:(NSString *)method
-                           withQueryItems:(NSArray <NSURLQueryItem *> *)queryItems
+                            byHTTPMethod:(NSString *)method
+                            withQuery:(NSString *)query
+                            withQueryItems:(NSArray <NSURLQueryItem *> *)queryItems
                                   andBody:(NSString *)body {
     // Build URL from path and query items
     NSURL *urlWithEndpoint = [self.serverURL URLByAppendingPathComponent:endpoint];
@@ -232,6 +252,9 @@ static const NSUInteger kBatchSize = 50;
                                              resolvingAgainstBaseURL:YES];
     if (queryItems) {
         components.queryItems = queryItems;
+    }
+    if (query) {
+        components.query = query;
     }
 
     // NSURLComponents/NSURLQueryItem doesn't encode + as %2B, and then the + is interpreted as a space on servers
@@ -251,6 +274,20 @@ static const NSUInteger kBatchSize = 50;
 + (NSString *)encodeArrayForAPI:(NSArray *)array {
     NSData *data = [MPNetwork encodeArrayAsJSONData:array];
     return [MPNetwork encodeJSONDataAsBase64:data];
+}
+
++ (NSString *)encodeArrayForCompass:(NSArray *)array {
+    NSData *data = nil;
+    NSError *error = NULL;
+    @try {
+        data = [NSJSONSerialization dataWithJSONObject:[self convertFoundationTypesToJSON:array[0]]
+                                               options:(NSJSONWritingOptions)0
+                                                 error:&error];
+    }
+    @catch (NSException *exception) {
+        MPLogError(@"exception encoding api data: %@", exception);
+    }
+    return [MPNetwork encodeJSONDataAsBase64Compass:data];
 }
 
 + (NSData *)encodeArrayAsJSONData:(NSArray *)array {
@@ -274,6 +311,10 @@ static const NSUInteger kBatchSize = 50;
 
 + (NSString *)encodeJSONDataAsBase64:(NSData *)data {
     return [data base64EncodedStringWithOptions:NSDataBase64Encoding64CharacterLineLength];
+}
+
++ (NSString *)encodeJSONDataAsBase64Compass:(NSData *)data {
+    return [data base64EncodedStringWithOptions:nil];
 }
 
 + (id)convertFoundationTypesToJSON:(id)obj {
