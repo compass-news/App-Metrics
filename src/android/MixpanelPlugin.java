@@ -254,25 +254,29 @@ public class MixpanelPlugin extends CordovaPlugin {
 
 
     private void initCommonProps() {
-        Map<String, String> deviceInfo = mixpanel.getDeviceInfo();
-        final Set<Map.Entry<String, String>> entries = deviceInfo.entrySet();
-        for (final Map.Entry<String, String> entry : entries) {
-            commonProps.put(entry.getKey(), entry.getValue());
+        try {
+            Map<String, String> deviceInfo = mixpanel.getDeviceInfo();
+            final Set<Map.Entry<String, String>> entries = deviceInfo.entrySet();
+            for (final Map.Entry<String, String> entry : entries) {
+                commonProps.put(entry.getKey(), entry.getValue());
+            }
+
+            commonProps.put("token", token);
+            commonProps.put("distinct_id", mixpanel.getDistinctId());
+            commonProps.put("time", new Date().getTime());
+            commonProps.put("mp_lib", "android");
+            commonProps.put("$lib_version", "compass_modified");
+
+            // For querying together with data from other libraries
+            commonProps.put("$os", "Android");
+            commonProps.put("$os_version", Build.VERSION.RELEASE == null ? "UNKNOWN" : Build.VERSION.RELEASE);
+
+            commonProps.put("$manufacturer", Build.MANUFACTURER == null ? "UNKNOWN" : Build.MANUFACTURER);
+            commonProps.put("$brand", Build.BRAND == null ? "UNKNOWN" : Build.BRAND);
+            commonProps.put("$model", Build.MODEL == null ? "UNKNOWN" : Build.MODEL);
+        } catch (final JSONException e) {
+            
         }
-
-        commonProps.put("token", token);
-        commonProps.put("distinct_id", mixpanel.getDistinctId());
-        commonProps.put("time", new Date().getTime());
-        commonProps.put("mp_lib", "android");
-        commonProps.put("$lib_version", "compass_modified");
-
-        // For querying together with data from other libraries
-        commonProps.put("$os", "Android");
-        commonProps.put("$os_version", Build.VERSION.RELEASE == null ? "UNKNOWN" : Build.VERSION.RELEASE);
-
-        commonProps.put("$manufacturer", Build.MANUFACTURER == null ? "UNKNOWN" : Build.MANUFACTURER);
-        commonProps.put("$brand", Build.BRAND == null ? "UNKNOWN" : Build.BRAND);
-        commonProps.put("$model", Build.MODEL == null ? "UNKNOWN" : Build.MODEL);
     }
 
     private boolean handleTrack(JSONArray args, final CallbackContext cbCtx) {
